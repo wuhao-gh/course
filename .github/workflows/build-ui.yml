@@ -1,4 +1,4 @@
-name: Build Vue3 UI
+name: Build UI
 
 on:
   push:
