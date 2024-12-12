@@ -164,4 +164,4 @@ cython_debug/
 ./ui/node_modules
 
 */dist
-*/dist.*
+*/dist.zip
