@@ -17,7 +17,7 @@
 
 <script setup>
 const menuItems = [
-  { name: '课程', path: '/' },
+  { name: '课程资料', path: '/' },
   { name: '练习', path: '/practice' },
   { name: '学习统计', path: '/stat' },
   { name: '作业管理', path: '/homework' },
