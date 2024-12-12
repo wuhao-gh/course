@@ -162,3 +162,6 @@ cython_debug/
 #.idea/
 
 ./ui/node_modules
+
+*/dist
+*/dist.*
