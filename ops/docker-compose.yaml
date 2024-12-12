@@ -9,6 +9,7 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+      - /opt/deploy/static:/opt/deploy/static
 
   pocketbase:
     image: elestio/pocketbase
