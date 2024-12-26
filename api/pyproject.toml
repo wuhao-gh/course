@@ -5,6 +5,11 @@ description = "online course"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "bcrypt>=4.2.1",
     "fastapi>=0.115.6",
+    "passlib[bcrypt]>=1.7.4",
+    "pyjwt>=2.10.1",
+    "python-multipart>=0.0.19",
+    "sqlmodel>=0.0.22",
     "uvicorn[standard]>=0.32.1",
 ]

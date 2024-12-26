@@ -1,7 +1,7 @@
 <template>
   <div class="p-6">
     <h2 class="text-2xl font-bold mb-6">练习列表</h2>
-    
+
     <el-table :data="exercises" stripe class="w-full">
       <el-table-column prop="title" label="标题" min-width="180">
         <template #default="{ row }">
@@ -12,10 +12,10 @@
           </div>
         </template>
       </el-table-column>
-      
-      <el-table-column prop="deadline" label="截止日期" width="160">
+
+      <el-table-column prop="created_at" label="发布时间" width="160">
         <template #default="{ row }">
-          <span>{{ formatDate(row.deadline) }}</span>
+          <span>{{ formatDate(row.created_at) }}</span>
         </template>
       </el-table-column>
 
@@ -53,19 +53,19 @@
             <h3 class="font-bold mb-2">标题</h3>
             <p>{{ currentExercise.title }}</p>
           </div>
-          
+
           <div class="mb-4">
             <h3 class="font-bold mb-2">描述</h3>
             <p class="whitespace-pre-wrap">{{ currentExercise.description }}</p>
           </div>
-          
+
           <div class="mb-4">
             <h3 class="font-bold mb-2">附件</h3>
             <div v-if="currentExercise.files && currentExercise.files.length">
               <div v-for="file in currentExercise.files" :key="file.name" class="mb-2">
-                <el-button 
-                  type="primary" 
-                  link 
+                <el-button
+                  type="primary"
+                  link
                   @click="downloadFile(file)"
                 >
                   <el-icon class="mr-1"><Download /></el-icon>
@@ -75,10 +75,10 @@
             </div>
             <p v-else class="text-gray-500">暂无附件</p>
           </div>
-          
+
           <div class="mb-4">
-            <h3 class="font-bold mb-2">截止日期</h3>
-            <p>{{ formatDate(currentExercise.deadline) }}</p>
+            <h3 class="font-bold mb-2">发布时间</h3>
+            <p>{{ formatDate(currentExercise.created_at) }}</p>
           </div>
         </div>
       </template>
@@ -104,7 +104,7 @@
           <el-input
             v-model="uploadForm.answer"
             type="textarea"
-            rows="6"
+            :rows="6"
             placeholder="请输入你的答案"
           />
         </el-form-item>
@@ -138,67 +138,62 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Download } from '@element-plus/icons-vue'
 import { UploadFilled } from '@element-plus/icons-vue'
+import request from '@/api/request'
 
-// Mock data - replace with actual API data
-const exercises = ref([
-  {
-    id: 1,
-    title: 'JavaScript 基础练习 - 变量和数据类型',
-    description: '完成以下练习：\n1. 声明不同类型的变量\n2. 实现基本的类型转换\n3. 使用模板字符串\n4. 理解变量作用域',
-    status: '未开始',
-    deadline: '2024-12-20 23:59:59',
-    files: [
-      { name: '练习说明.pdf', url: '/files/js-basics.pdf' },
-      { name: '示例代码.js', url: '/files/example.js' }
-    ]
-  },
-  {
-    id: 2,
-    title: 'Vue.js 组件通信练习',
-    description: '实现以下功能：\n1. 父子组件通信\n2. 兄弟组件通信\n3. 使用事件总线\n4. Provide/Inject 使用',
-    status: '进行中',
-    deadline: '2024-12-25 23:59:59',
-    files: [
-      { name: '项目模板.zip', url: '/files/vue-template.zip' }
-    ]
-  },
-  {
-    id: 3,
-    title: 'CSS Flexbox 布局实战',
-    description: '完成以下布局：\n1. 导航栏布局\n2. 卡片网格布局\n3. 响应式布局\n4. Flex 对齐方式练习',
-    status: '已完成',
-    deadline: '2024-12-15 23:59:59',
-    files: [
-      { name: '设计稿.fig', url: '/files/design.fig' },
-      { name: 'HTML模板.html', url: '/files/template.html' }
-    ]
-  },
-  {
-    id: 4,
-    title: 'Vue Router 导航守卫实践',
-    status: '未开始',
-    deadline: '2024-12-20 23:59:59',
-    files: []
-  },
-  {
-    id: 5,
-    title: 'Vuex 状态管理练习',
-    status: '已完成',
-    deadline: '2024-12-15 23:59:59',
-    files: []
+const exercises = ref([])
+
+// 获取练习列表
+const fetchExercises = async () => {
+  try {
+    const data = await request.get('/practice')
+    exercises.value = data
+  } catch (error) {
+    ElMessage.error('获取练习列表失败')
+    console.error(error)
   }
-])
+}
+
+// 在组件挂载时获取练习列表
+onMounted(() => {
+  fetchExercises()
+})
 
 const detailVisible = ref(false)
 const currentExercise = ref(null)
 
-const showDetail = (exercise) => {
-  currentExercise.value = exercise
-  detailVisible.value = true
+const showDetail = async (exercise) => {
+  try {
+    const data = await request.get(`/practice/${exercise.id}`)
+    currentExercise.value = data
+    detailVisible.value = true
+  } catch (error) {
+    ElMessage.error('获取练习详情失败')
+    console.error(error)
+  }
+}
+
+// 下载文件
+const downloadFile = async (file) => {
+  try {
+    const response = await request.get(`/practice/file/${file.id}`, {
+      responseType: 'blob'
+    })
+    const url = window.URL.createObjectURL(new Blob([response]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', file.file_name)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    ElMessage.error('下载文件失败')
+    console.error(error)
+  }
 }
 
 const formatDate = (dateStr) => {
@@ -209,12 +204,6 @@ const formatDate = (dateStr) => {
     hour: '2-digit',
     minute: '2-digit'
   })
-}
-
-const downloadFile = (file) => {
-  // In a real application, this would trigger a file download
-  // For now, we'll just show a message
-  ElMessage.success(`开始下载文件：${file.name}`)
 }
 
 const getStatusType = (status) => {
@@ -235,26 +224,25 @@ const uploadForm = ref({
 
 const uploadRules = {
   answer: [
-    { required: true, message: '请输入答案', trigger: 'blur' },
-    { min: 10, message: '答案至少10个字符', trigger: 'blur' }
+    { required: true, message: '请输入答案', trigger: 'blur' }
   ]
 }
 
 const showUploadDialog = (exercise) => {
   currentExercise.value = exercise
-  uploadDialogVisible.value = true
   uploadForm.value = {
     answer: '',
     files: []
   }
+  uploadDialogVisible.value = true
 }
 
 const handleFileChange = (file) => {
-  uploadForm.value.files.push(file)
+  uploadForm.value.files.push(file.raw)
 }
 
 const handleFileRemove = (file) => {
-  const index = uploadForm.value.files.indexOf(file)
+  const index = uploadForm.value.files.findIndex(f => f === file.raw)
   if (index !== -1) {
     uploadForm.value.files.splice(index, 1)
   }
@@ -262,18 +250,33 @@ const handleFileRemove = (file) => {
 
 const submitAnswer = async () => {
   if (!uploadFormRef.value) return
-  
-  await uploadFormRef.value.validate((valid) => {
-    if (valid) {
-      // Here you would typically send the data to your backend
-      ElMessage.success('答案提交成功！')
-      uploadDialogVisible.value = false
-      
-      // Update exercise status
-      if (currentExercise.value) {
-        currentExercise.value.status = '已完成'
+
+  try {
+    await uploadFormRef.value.validate()
+
+    const formData = new FormData()
+    formData.append('answer', uploadForm.value.answer)
+
+    uploadForm.value.files.forEach(file => {
+      formData.append('files', file)
+    })
+
+    await request.post(`/practice/${currentExercise.value.id}/submit`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
       }
+    })
+
+    ElMessage.success('提交成功')
+    uploadDialogVisible.value = false
+    fetchExercises() // 刷新列表
+  } catch (error) {
+    if (error.name === 'ValidationError') {
+      ElMessage.error('请填写必要信息')
+    } else {
+      ElMessage.error('提交失败')
+      console.error(error)
     }
-  })
+  }
 }
 </script>

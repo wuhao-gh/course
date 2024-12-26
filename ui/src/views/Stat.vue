@@ -20,173 +20,144 @@
         start-placeholder="开始日期"
         end-placeholder="结束日期"
         format="YYYY-MM-DD"
+        value-format="YYYY-MM-DD"
       />
     </div>
-    
-    <!-- User Watch Time Table -->
-    <el-table 
-      :data="filteredWatchStats" 
-      stripe 
-      class="w-full"
-      :default-sort="{ prop: 'totalDuration', order: 'descending' }"
-    >
-      <el-table-column prop="userName" label="用户" min-width="120" />
-      
-      <el-table-column 
-        v-for="category in categories" 
-        :key="category"
-        :prop="'duration.' + category"
-        :label="category"
-        min-width="120"
-        sortable
-      >
-        <template #default="{ row }">
-          {{ formatDuration(row.duration[category] || 0) }}
-        </template>
-      </el-table-column>
 
-      <el-table-column prop="totalDuration" label="总时长" min-width="120" sortable>
-        <template #default="{ row }">
-          {{ formatDuration(calculateTotalDuration(row.duration)) }}
+    <!-- Watch Time Chart -->
+    <div class="mb-8">
+      <el-card>
+        <template #header>
+          <div class="flex justify-between items-center">
+            <span>用户观看时长统计</span>
+            <el-button type="primary" link @click="refreshData">
+              <el-icon><Refresh /></el-icon>
+              刷新
+            </el-button>
+          </div>
         </template>
-      </el-table-column>
-    </el-table>
-
-    <!-- Summary Chart -->
-    <div class="mt-8">
-      <h3 class="text-xl font-semibold mb-4">分类观看时长分布</h3>
-      <div class="h-80">
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <div ref="pieChartRef" class="h-full"></div>
-          </el-col>
-          <el-col :span="12">
-            <div ref="barChartRef" class="h-full"></div>
-          </el-col>
-        </el-row>
-      </div>
+        <div class="h-[400px]" ref="watchTimeChartRef"></div>
+      </el-card>
     </div>
+
+    <!-- Summary Charts -->
+    <el-row :gutter="20">
+      <el-col :span="12">
+        <el-card>
+          <template #header>
+            <div class="flex justify-between items-center">
+              <span>分类观看时长分布</span>
+            </div>
+          </template>
+          <div class="h-[300px]" ref="pieChartRef"></div>
+        </el-card>
+      </el-col>
+      <el-col :span="12">
+        <el-card>
+          <template #header>
+            <div class="flex justify-between items-center">
+              <span>分类用户数分布</span>
+            </div>
+          </template>
+          <div class="h-[300px]" ref="barChartRef"></div>
+        </el-card>
+      </el-col>
+    </el-row>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
+import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
+import { Refresh } from '@element-plus/icons-vue'
+import request from '@/api/request'
 
-const categories = ['前端开发', '后端开发', '数据库', 'UI设计', '项目管理']
+// 状态
+const categories = ref(['前端开发', '后端开发', '数据库', 'UI设计', '项目管理'])
 const selectedCategory = ref('')
 const dateRange = ref('')
+const watchStats = ref([])
+const categoryStats = ref([])
 
-// Mock data for user watch statistics
-const watchStats = ref([
-  {
-    userName: '张三',
-    duration: {
-      '前端开发': 1800, // 秒
-      '后端开发': 2400,
-      '数据库': 1200,
-      'UI设计': 900,
-      '项目管理': 600
-    }
-  },
-  {
-    userName: '李四',
-    duration: {
-      '前端开发': 3600,
-      '后端开发': 1800,
-      '数据库': 2100,
-      'UI设计': 1500,
-      '项目管理': 1200
-    }
-  },
-  {
-    userName: '王五',
-    duration: {
-      '前端开发': 2700,
-      '后端开发': 3000,
-      '数据库': 1800,
-      'UI设计': 2400,
-      '项目管理': 900
-    }
-  }
-])
-
-// Computed property for filtered data
-const filteredWatchStats = computed(() => {
-  let result = watchStats.value
-
-  if (selectedCategory.value) {
-    result = result.filter(stat => 
-      stat.duration[selectedCategory.value] > 0
-    )
-  }
-
-  return result
-})
-
-// Format duration from seconds to hours and minutes
-const formatDuration = (seconds) => {
-  const hours = Math.floor(seconds / 3600)
-  const minutes = Math.floor((seconds % 3600) / 60)
-  return `${hours}小时${minutes}分钟`
-}
-
-// Calculate total duration for a user
-const calculateTotalDuration = (durations) => {
-  return Object.values(durations).reduce((sum, curr) => sum + curr, 0)
-}
-
-// Chart references
+// 图表引用
+const watchTimeChartRef = ref(null)
 const pieChartRef = ref(null)
 const barChartRef = ref(null)
+let watchTimeChart = null
+let pieChart = null
+let barChart = null
 
-// Initialize charts
-onMounted(() => {
-  const pieChart = echarts.init(pieChartRef.value)
-  const barChart = echarts.init(barChartRef.value)
+// 格式化时长
+const formatDuration = (seconds) => {
+  return (seconds / 3600).toFixed(1)
+}
 
-  // Calculate total duration by category
-  const categoryData = categories.map(category => ({
+// 获取统计数据
+const fetchStats = async () => {
+  try {
+    const params = {}
+    if (dateRange.value) {
+      params.start_date = dateRange.value[0]
+      params.end_date = dateRange.value[1]
+    }
+    if (selectedCategory.value) {
+      params.category = selectedCategory.value
+    }
+
+    const [overviewData, categoryData] = await Promise.all([
+      request.get('/stats/overview', { params }),
+      request.get('/stats/category', { params })
+    ])
+
+    watchStats.value = overviewData
+    categoryStats.value = categoryData
+    
+    updateCharts()
+  } catch (error) {
+    ElMessage.error('获取统计数据失败')
+    console.error(error)
+  }
+}
+
+// 刷新数据
+const refreshData = () => {
+  fetchStats()
+}
+
+// 初始化观看时长图表
+const initWatchTimeChart = () => {
+  if (watchTimeChart) {
+    watchTimeChart.dispose()
+  }
+  
+  watchTimeChart = echarts.init(watchTimeChartRef.value)
+  
+  const users = watchStats.value.map(stat => `用户${stat.user_id}`)
+  const allCategories = Array.from(
+    new Set(
+      watchStats.value.flatMap(stat => 
+        Object.keys(stat.duration)
+      )
+    )
+  )
+  
+  const series = allCategories.map(category => ({
     name: category,
-    value: watchStats.value.reduce((sum, user) => 
-      sum + (user.duration[category] || 0), 0
+    type: 'bar',
+    stack: 'total',
+    label: {
+      show: true,
+      formatter: '{c} h'
+    },
+    data: watchStats.value.map(stat => 
+      formatDuration(stat.duration[category] || 0)
     )
   }))
 
-  // Pie chart options
-  pieChart.setOption({
+  watchTimeChart.setOption({
     title: {
-      text: '分类占比',
-      left: 'center'
-    },
-    tooltip: {
-      trigger: 'item',
-      formatter: '{b}: {c} 秒 ({d}%)'
-    },
-    legend: {
-      orient: 'vertical',
-      left: 'left'
-    },
-    series: [
-      {
-        type: 'pie',
-        radius: '50%',
-        data: categoryData,
-        emphasis: {
-          itemStyle: {
-            shadowBlur: 10,
-            shadowOffsetX: 0,
-            shadowColor: 'rgba(0, 0, 0, 0.5)'
-          }
-        }
-      }
-    ]
-  })
-
-  // Bar chart options
-  barChart.setOption({
-    title: {
-      text: '用户观看时长',
+      text: '用户观看时长统计',
       left: 'center'
     },
     tooltip: {
@@ -198,26 +169,150 @@ onMounted(() => {
     legend: {
       top: '10%'
     },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '3%',
+      top: '20%',
+      containLabel: true
+    },
     xAxis: {
       type: 'category',
-      data: watchStats.value.map(stat => stat.userName)
+      data: users
     },
     yAxis: {
       type: 'value',
-      name: '时长（秒）'
+      name: '时长（小时）'
     },
-    series: categories.map(category => ({
-      name: category,
-      type: 'bar',
-      stack: 'total',
-      data: watchStats.value.map(stat => stat.duration[category] || 0)
-    }))
+    series
   })
+}
 
-  // Handle window resize
-  window.addEventListener('resize', () => {
-    pieChart.resize()
-    barChart.resize()
+// 初始化饼图
+const initPieChart = () => {
+  if (pieChart) {
+    pieChart.dispose()
+  }
+  
+  pieChart = echarts.init(pieChartRef.value)
+  
+  const data = categoryStats.value.map(stat => ({
+    name: stat.category,
+    value: formatDuration(stat.total_duration)
+  }))
+
+  pieChart.setOption({
+    tooltip: {
+      trigger: 'item',
+      formatter: '{b}: {c}h ({d}%)'
+    },
+    legend: {
+      orient: 'vertical',
+      left: 'left'
+    },
+    series: [
+      {
+        type: 'pie',
+        radius: '50%',
+        data,
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 10,
+            shadowOffsetX: 0,
+            shadowColor: 'rgba(0, 0, 0, 0.5)'
+          }
+        }
+      }
+    ]
   })
+}
+
+// 初始化柱状图
+const initBarChart = () => {
+  if (barChart) {
+    barChart.dispose()
+  }
+  
+  barChart = echarts.init(barChartRef.value)
+  
+  const data = categoryStats.value.map(stat => ({
+    category: stat.category,
+    userCount: stat.user_count,
+    avgDuration: formatDuration(stat.avg_duration)
+  }))
+
+  barChart.setOption({
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'shadow'
+      }
+    },
+    legend: {
+      data: ['用户数', '平均时长']
+    },
+    xAxis: {
+      type: 'category',
+      data: data.map(item => item.category)
+    },
+    yAxis: [
+      {
+        type: 'value',
+        name: '用户数',
+        position: 'left'
+      },
+      {
+        type: 'value',
+        name: '平均时长(h)',
+        position: 'right'
+      }
+    ],
+    series: [
+      {
+        name: '用户数',
+        type: 'bar',
+        data: data.map(item => item.userCount)
+      },
+      {
+        name: '平均时长',
+        type: 'line',
+        yAxisIndex: 1,
+        data: data.map(item => item.avgDuration)
+      }
+    ]
+  })
+}
+
+// 更新所有图表
+const updateCharts = () => {
+  initWatchTimeChart()
+  initPieChart()
+  initBarChart()
+}
+
+// 监听窗口大小变化
+const handleResize = () => {
+  watchTimeChart?.resize()
+  pieChart?.resize()
+  barChart?.resize()
+}
+
+// 监听筛选条件变化
+watch([selectedCategory, dateRange], () => {
+  fetchStats()
+})
+
+// 组件挂载
+onMounted(() => {
+  fetchStats()
+  window.addEventListener('resize', handleResize)
+})
+
+// 组件卸载
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+  watchTimeChart?.dispose()
+  pieChart?.dispose()
+  barChart?.dispose()
 })
 </script>
