@@ -170,3 +170,9 @@ cython_debug/
 .windsurfrules
 .idea
 */upload
+.vscode
+/api/course.db
+
+*/logs
+
+uv.lock

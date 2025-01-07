@@ -3,7 +3,7 @@ from sqlmodel import select
 from typing import Annotated
 
 import jwt
-from fastapi import APIRouter, Form
+from fastapi import APIRouter, Form, Response
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jwt.exceptions import InvalidTokenError
@@ -24,6 +24,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 class Token(BaseModel):
     access_token: str
     token_type: str
+    expires_in: int
 
 
 class TokenData(BaseModel):
@@ -34,15 +35,17 @@ class UserBase(BaseEntity):
     """用户模型"""
     name: str
     email: str = Field(unique=True, index=True)
-    password_hash: str
     role: str
+    status: str | None
 
 
 class User(UserBase, table=True):
     """用户表"""
+    password_hash: str
 
 class UserCreate(UserBase):
     """创建用户"""
+    password: str
 
 class UserView(UserBase):
     """用户视图"""
@@ -107,7 +110,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), session: Session
 
 
 async def get_current_active_user(current_user: User = Depends(get_current_user)):
-    if current_user.disabled:
+    if current_user.status != "激活":
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
@@ -125,14 +128,33 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     access_token = create_access_token(
         data={"sub": user.name, "role": user.role}, expires_delta=access_token_expires
     )
-    return Token(access_token=access_token, token_type="bearer")
+    return Token(access_token=access_token, token_type="bearer", expires_in=access_token_expires.seconds)
 
 
-@router.get("/users/me/", response_model=UserView)
-async def read_users_me(current_user: User = Depends(get_current_active_user)):
+@router.get("/user/me", response_model=UserView)
+async def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
 
 
-@router.get("/users/me/items/")
-async def read_own_items(current_user: User = Depends(get_current_active_user)):
-    return [{"item_id": "Foo", "owner": current_user.username}]
+@router.get("/user", response_model=list[UserView])
+async def get_users(session: Session = Depends(get_session)):
+    """获取所有用户"""
+    users = session.exec(select(User)).all()
+    return users
+
+
+@router.get("/students", response_model=list[UserView])
+async def get_students(
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session)
+):
+    """获取所有学生列表"""
+    if current_user.role != 'teacher':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only teachers can access student list"
+        )
+    
+    statement = select(User).where(User.role == 'student')
+    students = session.exec(statement).all()
+    return students

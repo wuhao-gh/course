@@ -198,7 +198,7 @@ const filteredUsers = computed(() => {
 // 方法
 const loadUsers = async () => {
   try {
-    const response = await axios.get('/api/user')
+    const response = await axios.get('/api/admin')
     userList.value = response.data
   } catch (error) {
     ElMessage.error('加载用户列表失败')
@@ -231,10 +231,10 @@ const handleSave = async () => {
     await formRef.value.validate()
 
     if (isEdit.value) {
-      await axios.put(`/api/user/${form.value.id}`, form.value)
+      await axios.put(`/api/admin/${form.value.id}`, form.value)
       ElMessage.success('修改成功')
     } else {
-      await axios.post('/api/user', form.value)
+      await axios.post('/api/admin', form.value)
       ElMessage.success('创建成功')
     }
 
@@ -251,7 +251,7 @@ const toggleUserStatus = async (user) => {
     const formData = new FormData()
     formData.append('status', newStatus)
 
-    await axios.put(`/api/user/${user.id}`, formData)
+    await axios.put(`/api/admin/${user.id}`, formData)
     ElMessage.success(`${newStatus}用户成功`)
     loadUsers()
   } catch (error) {

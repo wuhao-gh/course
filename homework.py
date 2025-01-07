@@ -2,11 +2,11 @@ import logging
 from datetime import datetime
 
 from fastapi import APIRouter, Depends
-from sqlmodel import Session, select, Field
+from sqlmodel import Session, select, Field, and_
 from sqlalchemy import func
 
 from model import BaseEntity
-from auth import UserView, User
+from auth import UserView, User, get_current_user
 from db import get_session
 
 router = APIRouter(prefix="/api/homework", tags=["作业管理"])
@@ -31,10 +31,11 @@ class Homework(HomeworkBase, table=True):
 
 
 class HomeworkView(HomeworkBase):
-    """作业答案视图"""
+    """作业管理视图"""
     answer_count: int | None = None
     score_count: int | None = None
     user_count: int | None = None
+
 
 
 class HomeworkAnswerBase(BaseEntity):
@@ -53,6 +54,12 @@ class HomeworkAnswerView(HomeworkAnswerBase):
     user: UserView | None = None
 
 
+class HomeworkStudentView(HomeworkBase):
+    """作业学生视图"""
+    status: str
+    answer: HomeworkAnswerView | None = None
+
+
 @router.get("", response_model=list[HomeworkView])
 async def list_homework(session: Session = Depends(get_session)):
     """获取作业列表"""
@@ -65,6 +72,53 @@ async def list_homework(session: Session = Depends(get_session)):
         view.score_count = session.exec(select(func.count()).select_from(HomeworkAnswer).where(HomeworkAnswer.homework_id == homework.id).where(HomeworkAnswer.score != None)).one()
         view.user_count = user_count
         res.append(view)
+    return res
+
+
+# 学生视角查看作业列表
+@router.get("/student", response_model=list[HomeworkStudentView])
+async def list_student_homework(session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
+    """获取作业列表"""
+    # 使用 left outer join 查询作业和当前用户的答案
+    query = (
+        select(Homework, HomeworkAnswer)
+        .outerjoin(HomeworkAnswer, and_(
+            HomeworkAnswer.homework_id == Homework.id,
+            HomeworkAnswer.user_id == current_user.id
+        ))
+        .order_by(Homework.id)
+    )
+    results = session.exec(query).all()
+    
+    # 转换查询结果为 HomeworkStudentView 格式
+    res = []
+    for homework, answer in results:
+        status = "pending"
+        answer_view = None
+        if answer:
+            status = "submitted"
+            if answer.score is not None:
+                status = "graded"
+                
+            answer_view = HomeworkAnswerView(
+                id=answer.id,
+                homework_id=answer.homework_id,
+                user_id=answer.user_id,
+                file_path=answer.file_path,
+                score=answer.score,
+                comment=answer.comment
+            )
+        
+        homework_view = HomeworkStudentView(
+            id=homework.id,
+            title=homework.title,
+            description=homework.description,
+            deadline=homework.deadline,
+            status=status,
+            answer=answer_view
+        )
+        res.append(homework_view)
+    
     return res
 
 
@@ -100,6 +154,6 @@ async def submit_homework(homeworkAnswer: HomeworkAnswer, session: Session = Dep
     session.add(homeworkAnswer)
 
 
-@router.put("/{homework_id}/score/{answer_id}")
+@router.put("/answer/{answer_id}/score")
 async def score_homework_answer(session: Session = Depends(get_session)):
     """评分作业"""

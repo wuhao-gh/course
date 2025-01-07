@@ -24,7 +24,7 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '../stores/user'
-import { login } from '../api/auth'
+import { login, getCurrentUser } from '../api/auth'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -43,17 +43,23 @@ const rules = {
 
 const handleLogin = async () => {
   if (!formRef.value) return
-
+  
   try {
     await formRef.value.validate()
-    loading.value = true
-
-    const res = await login(form.username, form.password)
-    userStore.setToken(res.access_token)
+    
+    const { token, expiresIn } = await login(
+      form.username,
+      form.password
+    )
+    await userStore.setToken(token, expiresIn)
+    const userData = await getCurrentUser()
+    await userStore.setUser(userData)
+    
     ElMessage.success('登录成功')
-    await router.push('/')
+    router.push('/')
   } catch (error) {
-    ElMessage.error(error.message || '登录失败')
+    console.error(error)
+    ElMessage.error(error.response?.data?.detail || '登录失败')
   } finally {
     loading.value = false
   }

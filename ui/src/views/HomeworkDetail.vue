@@ -50,6 +50,59 @@
         </el-table-column>
       </el-table>
     </div>
+
+    <!-- 答案详情对话框 -->
+    <el-dialog
+      v-model="answerDialogVisible"
+      title="答案详情"
+      width="600px"
+    >
+      <div v-if="currentAnswer" class="answer-detail">
+        <div class="mb-4">
+          <div class="font-bold mb-2">学生信息：</div>
+          <div>{{ currentAnswer.user.name }}</div>
+        </div>
+
+        <div class="mb-4">
+          <div class="font-bold mb-2">提交时间：</div>
+          <div>{{ currentAnswer.created_at }}</div>
+        </div>
+
+        <div class="mb-4">
+          <div class="font-bold mb-2">答案文件：</div>
+          <el-link 
+            :href="'/api/homework/download/' + currentAnswer.file_path"
+            type="primary"
+            target="_blank"
+          >
+            {{ currentAnswer.file_path }}
+          </el-link>
+        </div>
+
+        <el-form ref="scoreForm" :model="scoreForm" label-width="80px">
+          <el-form-item label="分数">
+            <el-input-number 
+              v-model="scoreForm.score" 
+              :min="0" 
+              :max="100"
+              :precision="0"
+            />
+          </el-form-item>
+          <el-form-item label="评语">
+            <el-input 
+              v-model="scoreForm.comment"
+              type="textarea"
+              :rows="4"
+              placeholder="请输入评语"
+            />
+          </el-form-item>
+        </el-form>
+
+        <div class="flex justify-center mt-4">
+          <el-button type="primary" @click="handleSubmitScore">保存评分</el-button>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -62,6 +115,13 @@ import request from '@/api/request'
 const route = useRoute()
 const homework = ref({})
 const answerList = ref([])
+const answerDialogVisible = ref(false)
+const currentAnswer = ref(null)
+const scoreForm = ref({
+  score: 0,
+  comment: ''
+})
+
 
 // 获取作业详情
 const fetchHomeworkDetail = async () => {
@@ -84,8 +144,30 @@ const fetchAnswerList = async () => {
 
 // 查看答案详情
 const viewAnswer = (answer) => {
-  // TODO: 实现答案详情查看功能
-  console.log('查看答案:', answer)
+  currentAnswer.value = answer
+  scoreForm.value = {
+    score: answer.score || 0,
+    comment: answer.comment || ''
+  }
+  answerDialogVisible.value = true
+}
+
+// 提交评分
+const handleSubmitScore = async () => {
+  try {
+    await request.post(`/homework/answer/${currentAnswer.value.id}/score`, {
+      score: scoreForm.value.score,
+      comment: scoreForm.value.comment
+    })
+    
+    ElMessage.success('评分成功')
+    answerDialogVisible.value = false
+    
+    // 刷新答案列表
+    await fetchAnswerList()
+  } catch (error) {
+    ElMessage.error('评分失败')
+  }
 }
 
 onMounted(async () => {

@@ -1,7 +1,7 @@
 <template>
   <div class="p-4">
     <!-- 总体概览 -->
-    <div class="mb-8">
+    <div class="mb-8" v-if="!isStudent">
       <h2 class="text-2xl font-bold mb-4">学习概览</h2>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <el-card v-for="stat in overview" :key="stat.label">
@@ -14,7 +14,7 @@
     </div>
 
     <!-- 学习趋势 -->
-    <div class="mb-8">
+    <div class="mb-8" v-if="!isStudent">
       <h2 class="text-2xl font-bold mb-4">学习趋势</h2>
       <el-card>
         <div ref="trendChart" class="h-80"></div>
@@ -23,7 +23,19 @@
 
     <!-- 个人学习统计 -->
     <div class="mb-8" v-if="userStore.user">
-      <h2 class="text-2xl font-bold mb-4">我的学习</h2>
+      <h2 class="text-2xl font-bold mb-4" v-if="isStudent">我的学习</h2>
+      <template v-else>
+        <h2 class="text-2xl font-bold mb-4">学生学习统计</h2>
+        <el-select v-model="selectedStudentId" placeholder="选择学生" class="mb-4">
+          <el-option
+            v-for="student in studentList"
+            :key="student.id"
+            :label="student.name"
+            :value="student.id"
+          />
+        </el-select>
+      </template>
+
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <!-- 学习数据 -->
         <el-card>
@@ -51,7 +63,7 @@
               </template>
             </el-table-column>
             <el-table-column label="操作" width="100">
-              <template #default="{ row }">
+              <template #default="{ row }" v-if="isStudent">
                 <el-button type="primary" link @click="goToCourse(row.id)">继续学习</el-button>
               </template>
             </el-table-column>
@@ -63,7 +75,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import request from '@/api/request'
@@ -73,6 +85,10 @@ const router = useRouter()
 const userStore = useUserStore()
 const trendChart = ref(null)
 let chart = null
+
+const isStudent = userStore.isStudent()
+const selectedStudentId = ref(null)
+const studentList = ref([])
 
 // 总体概览数据
 const overviewData = ref({
@@ -127,16 +143,36 @@ const fetchTrend = async () => {
   }
 }
 
+// 获取学生列表
+const fetchStudentList = async () => {
+  try {
+    const res = await request.get('/auth/students')
+    studentList.value = res
+    // 自动选择第一个学生
+    if (res.length > 0 && !selectedStudentId.value) {
+      selectedStudentId.value = res[0].id
+    }
+  } catch (error) {
+    console.error('获取学生列表失败:', error)
+  }
+}
+
 // 获取用户统计数据
 const fetchUserStats = async () => {
   if (!userStore.user) return
   try {
-    const res = await request.get(`/progress/stats/user/${userStore.user.id}`)
+    const userId = isStudent ? userStore.user.id : selectedStudentId.value
+    const res = await request.get(`/progress/stats/user/${userId}`)
     userStatsData.value = res
   } catch (error) {
     console.error('获取用户统计数据失败:', error)
   }
 }
+
+// 监听选中学生变化
+watch(selectedStudentId, () => {
+  fetchUserStats()
+})
 
 // 绘制趋势图表
 const renderTrendChart = (data) => {
@@ -209,6 +245,10 @@ window.addEventListener('resize', () => {
 onMounted(() => {
   fetchOverview()
   fetchTrend()
-  fetchUserStats()
+  if (!isStudent) {
+    fetchStudentList()
+  } else {
+    fetchUserStats()
+  }
 })
 </script>

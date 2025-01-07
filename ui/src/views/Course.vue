@@ -21,7 +21,7 @@
       </div>
 
       <!-- Upload Button -->
-      <el-button type="primary" @click="uploadDialogVisible = true">上传课程</el-button>
+      <el-button v-if="!isStudent" type="primary" @click="uploadDialogVisible = true">上传课程</el-button>
     </div>
 
     <!-- Upload Dialog -->
@@ -47,7 +47,14 @@
           />
         </el-form-item>
         <el-form-item label="分类" prop="category">
-          <el-select v-model="uploadForm.category" placeholder="请选择分类">
+          <el-select
+              v-model="uploadForm.category"
+              placeholder="请选择分类"
+              filterable
+              allow-create
+              default-first-option
+              @visible-change="handleSelectOpen"
+          >
             <el-option
                 v-for="category in categories"
                 :key="category"
@@ -64,7 +71,7 @@
               :auto-upload="false"
               :on-change="handleFileChange"
               :on-remove="handleFileRemove"
-              accept=".pdf,.mp4"
+              accept="video/*,.pdf"
           >
             <el-icon class="el-icon--upload">
               <upload-filled/>
@@ -73,7 +80,7 @@
               拖拽文件到此处或 <em>点击上传</em>
             </div>
             <template #tip>
-              <div class="text-gray-400 mt-1">支持 PDF 或 MP4 文件</div>
+              <div class="text-gray-400 mt-1">支持视频文件或 PDF 文件</div>
             </template>
           </el-upload>
         </el-form-item>
@@ -94,11 +101,11 @@
           class="hover:shadow-lg transition-shadow duration-300"
       >
         <div class="aspect-video relative mb-2 group cursor-pointer" @click="playVideo(course)">
-          <template v-if="course.file_path && course.file_path.endsWith('.mp4')">
+          <template v-if="course.file_path && isVideo(course.file_path)">
             <video
-              :src="course.file_path"
-              class="w-full h-full object-cover rounded"
-              preload="metadata"
+                :src="'/api/static/' + course.file_path"
+                class="w-full h-full object-cover rounded"
+                preload="metadata"
             ></video>
             <div class="absolute inset-0 bg-black bg-opacity-40 group-hover:bg-opacity-20 transition-opacity flex items-center justify-center">
               <el-icon class="text-white text-4xl opacity-80 group-hover:opacity-100 transition-opacity">
@@ -108,9 +115,8 @@
           </template>
           <template v-else>
             <img
-              :src="course.thumbnail || 'https://picsum.photos/400/225'"
-              :alt="course.title"
-              class="w-full h-full object-cover rounded"
+                :alt="course.title"
+                class="w-full h-full object-cover rounded"
             >
             <div class="absolute inset-0 bg-black bg-opacity-40 group-hover:bg-opacity-20 transition-opacity flex items-center justify-center">
               <el-icon class="text-white text-4xl opacity-80 group-hover:opacity-100 transition-opacity">
@@ -133,28 +139,28 @@
 
   <!-- Video Player Dialog -->
   <el-dialog
-    v-model="videoDialogVisible"
-    width="80%"
-    :title="selectedCourse?.title"
-    destroy-on-close
-    @close="stopVideo"
+      v-model="videoDialogVisible"
+      width="80%"
+      :title="selectedCourse?.title"
+      destroy-on-close
+      @close="stopVideo"
   >
     <video
-      v-if="selectedCourse?.file_path?.endsWith('.mp4')"
-      ref="videoPlayer"
-      :src="selectedCourse.file_path"
-      class="w-full"
-      controls
-      autoplay
-      @loadedmetadata="handleVideoLoaded"
-      @timeupdate="handleTimeUpdate"
-      @ended="handleVideoEnded"
+        v-if="selectedCourse?.file_path && isVideo(selectedCourse.file_path)"
+        ref="videoPlayer"
+        :src="'/api/static/' + selectedCourse.file_path"
+        class="w-full"
+        controls
+        autoplay
+        @loadedmetadata="handleVideoLoaded"
+        @timeupdate="handleTimeUpdate"
+        @ended="handleVideoEnded"
     ></video>
     <iframe
-      v-else-if="selectedCourse?.file_path?.endsWith('.pdf')"
-      :src="selectedCourse.file_path"
-      class="w-full h-[80vh]"
-      frameborder="0"
+        v-else-if="selectedCourse?.file_path?.endsWith('.pdf')"
+        :src="'/api/static/' + selectedCourse.file_path"
+        class="w-full h-[80vh]"
+        frameborder="0"
     ></iframe>
   </el-dialog>
 </template>
@@ -167,7 +173,7 @@ import request from '@/api/request'
 import { useUserStore } from '@/stores/user'
 
 // 状态管理
-const categories = ref(['Programming', 'Design', 'Business', 'Marketing'])
+const categories = ref([])  // 将从后端获取
 const courses = ref([])
 const selectedCategory = ref('')
 const uploadDialogVisible = ref(false)
@@ -177,24 +183,22 @@ const uploadForm = ref({
   title: '',
   description: '',
   category: '',
-  tags: [],
   file: null
 })
 
 const uploadRules = {
   title: [{required: true, message: '请输入课程标题', trigger: 'blur'}],
   description: [{required: true, message: '请输入课程描述', trigger: 'blur'}],
-  category: [{required: true, message: '请选择分类', trigger: 'change'}],
-  file: [{required: true, message: '请上传课程文件', trigger: 'change'}]
+  category: [{required: true, message: '请选择分类', trigger: 'change'}]
 }
 
 // 视频播放相关
 const videoDialogVisible = ref(false)
 const selectedCourse = ref(null)
 const videoPlayer = ref(null)
-const lastProgress = ref(null)
-const progressSaveTimeout = ref(null)
 const userStore = useUserStore()
+
+const isStudent = userStore.isStudent()
 
 const playVideo = async (course) => {
   selectedCourse.value = course
@@ -206,7 +210,9 @@ const playVideo = async (course) => {
       params: { user_id: userStore.user.id }
     })
     if (progress) {
-      lastProgress.value = progress
+      // 恢复上次播放位置
+      videoPlayer.value.currentTime = progress.current_time
+      ElMessage.success(`已恢复至上次播放位置: ${Math.floor(progress.current_time)}秒`)
     }
   } catch (error) {
     console.error('获取播放进度失败:', error)
@@ -214,10 +220,9 @@ const playVideo = async (course) => {
 }
 
 const handleVideoLoaded = () => {
-  if (lastProgress.value && videoPlayer.value) {
+  if (selectedCourse.value && videoPlayer.value) {
     // 恢复上次播放位置
-    videoPlayer.value.currentTime = lastProgress.value.current_time
-    ElMessage.success(`已恢复至上次播放位置: ${Math.floor(lastProgress.value.current_time)}秒`)
+    videoPlayer.value.currentTime = selectedCourse.value.current_time
   }
 }
 
@@ -225,11 +230,7 @@ const handleTimeUpdate = () => {
   if (!videoPlayer.value || !selectedCourse.value) return
 
   // 使用防抖，避免频繁保存
-  if (progressSaveTimeout.value) {
-    clearTimeout(progressSaveTimeout.value)
-  }
-
-  progressSaveTimeout.value = setTimeout(async () => {
+  setTimeout(async () => {
     const currentTime = videoPlayer.value.currentTime
     const duration = videoPlayer.value.duration
     const progress = (currentTime / duration) * 100
@@ -246,7 +247,7 @@ const handleTimeUpdate = () => {
     } catch (error) {
       console.error('保存播放进度失败:', error)
     }
-  }, 1000) // 每秒保存一次进度
+  }, 5000) // 每 5 秒保存一次进度
 }
 
 const handleVideoEnded = async () => {
@@ -268,15 +269,11 @@ const handleVideoEnded = async () => {
 }
 
 const stopVideo = () => {
-  if (progressSaveTimeout.value) {
-    clearTimeout(progressSaveTimeout.value)
-  }
   if (videoPlayer.value) {
     videoPlayer.value.pause()
     videoPlayer.value.currentTime = 0
   }
   selectedCourse.value = null
-  lastProgress.value = null
 }
 
 // 获取课程列表
@@ -290,20 +287,49 @@ const fetchCourses = async () => {
   courses.value = await request.get('/course', {params})
 }
 
+// 获取分类列表
+const fetchCategories = async () => {
+  try {
+    const response = await request.get('/course/categories')
+    categories.value = response
+  } catch (error) {
+    ElMessage.error('获取分类列表失败')
+  }
+}
+
 // 选择分类
 const selectCategory = async (category) => {
   selectedCategory.value = selectedCategory.value === category ? '' : category
   await fetchCourses()
 }
 
+// 判断文件是否为视频
+const isVideo = (filename) => {
+  // 获取文件扩展名
+  const ext = filename.split('.').pop().toLowerCase()
+  // 常见视频格式列表
+  const videoExts = ['mp4', 'webm', 'ogg', 'mov', 'avi', 'wmv', 'flv', 'm4v', 'mkv']
+  return videoExts.includes(ext)
+}
+
 // 文件上传前检查
 const handleFileChange = (file) => {
-  const isValidType = file.raw.type === 'application/pdf' || file.raw.type === 'video/mp4'
-  if (!isValidType) {
-    ElMessage.error('只支持 PDF 或 MP4 文件')
+  const isLt100M = file.size / 1024 / 1024 < 100
+  
+  if (!isLt100M) {
+    ElMessage.error('文件大小不能超过 100MB!')
     return false
   }
-
+  
+  const fileName = file.name.toLowerCase()
+  const isPdf = fileName.endsWith('.pdf')
+  const isVideoFile = isVideo(fileName)
+  
+  if (!isPdf && !isVideoFile) {
+    ElMessage.error('只能上传视频或 PDF 文件!')
+    return false
+  }
+  
   uploadForm.value.file = file.raw
   return true
 }
@@ -320,7 +346,6 @@ const closeUploadDialog = () => {
     title: '',
     description: '',
     category: '',
-    tags: [],
     file: null
   }
 }
@@ -360,8 +385,16 @@ const handleSubmit = async () => {
   }
 }
 
+// 选择框打开时刷新分类列表
+const handleSelectOpen = async (visible) => {
+  if (visible) {
+    await fetchCategories()
+  }
+}
+
 // 初始化
 onMounted(() => {
+  fetchCategories()
   fetchCourses()
 })
 </script>

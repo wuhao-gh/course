@@ -15,5 +15,6 @@ export const userApi = {
   // 更新用户信息
   updateUserInfo(data) {
     return post('/user/update', data)
-  }
+  },
+
 }

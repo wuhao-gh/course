@@ -10,7 +10,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime
 
 # 创建日志目录
-log_dir = Path("logs")
+log_dir = Path("ops/logs")
 log_dir.mkdir(exist_ok=True)
 
 # 日志格式
@@ -42,14 +42,6 @@ def setup_logger(name: str, log_file: Optional[str] = None, level=logging.INFO) 
 
 # 设置根logger
 root_logger = setup_logger("course_api", "app.log")
-
-# 设置各模块logger
-user_logger = setup_logger("course_api.user", "user.log")
-course_logger = setup_logger("course_api.course", "course.log")
-homework_logger = setup_logger("course_api.homework", "homework.log")
-practice_logger = setup_logger("course_api.practice", "practice.log")
-qa_logger = setup_logger("course_api.qa", "qa.log")
-stat_logger = setup_logger("course_api.stat", "stat.log")
 
 def log_error(logger: logging.Logger, error: Exception, request: Optional[Request] = None) -> Dict[str, Any]:
     """统一的错误日志记录"""

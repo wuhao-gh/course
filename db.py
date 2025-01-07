@@ -3,7 +3,7 @@ import os
 
 # 获取数据库路径
 current_dir = os.path.dirname(os.path.abspath(__file__))
-db_path = os.path.join(current_dir, "course.db")
+db_path = os.path.join(current_dir, "ops/db/course.db")
 DATABASE_URL = f"sqlite:///{db_path}"
 
 # 创建数据库引擎

@@ -25,7 +25,8 @@ def verify_password(password: str, hashed: str) -> bool:
 @router.post("")
 async def create_user(user_create: UserCreate, session=Depends(get_session)):
     """创建用户"""
-    user = User.model_validate(user_create)
+    user = User(**user_create.model_dump())
+    user.password_hash = hash_password(user_create.password)
     session.add(user)
 
 

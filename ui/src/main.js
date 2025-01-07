@@ -11,9 +11,12 @@ import 'element-plus/dist/index.css'
 
 import 'virtual:uno.css'
 
-const app = createApp(App)
+import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 
-app.use(createPinia())
+const app = createApp(App)
+const pinia = createPinia()
+pinia.use(piniaPluginPersistedstate)
+app.use(pinia)
 app.use(router)
 app.use(ElementPlus)
 

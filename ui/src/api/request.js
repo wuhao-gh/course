@@ -32,7 +32,6 @@ request.interceptors.response.use(
     return response.data
   },
   (error) => {
-    console.log(error)
     const { response } = error
     if (response) {
       // 根据状态码处理错误
