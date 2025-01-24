@@ -73,7 +73,7 @@
 ORM：[SQLModel](https://sqlmodel.cn/)
 
 ### 目录结构
-
+```text
 course/
 ├── README.md                 # 项目说明文档
 ├── pyproject.toml           # Python 项目配置文件
@@ -109,7 +109,7 @@ course/
     │   ├── views/          # 页面组件
     │   └── assets/         # 静态资源
     └── public/             # 公共静态资源
-
+```
 ### 运行
 1. 准备环境
 - 安装 uv
