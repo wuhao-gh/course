@@ -1,13 +1,14 @@
 import logging
 from datetime import datetime
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select, Field, and_
 from sqlalchemy import func
 
 from model import BaseEntity
 from auth import UserView, User, get_current_user
 from db import get_session
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/homework", tags=["作业管理"])
 logger = logging.getLogger(__name__)
@@ -58,6 +59,12 @@ class HomeworkStudentView(HomeworkBase):
     """作业学生视图"""
     status: str
     answer: HomeworkAnswerView | None = None
+
+
+class HomeworkAnswerScore(BaseModel):
+    """作业评分"""
+    score: int = Field(ge=0, le=100)
+    comment: str | None = None
 
 
 @router.get("", response_model=list[HomeworkView])
@@ -155,5 +162,26 @@ async def submit_homework(homeworkAnswer: HomeworkAnswer, session: Session = Dep
 
 
 @router.put("/answer/{answer_id}/score")
-async def score_homework_answer(session: Session = Depends(get_session)):
+async def score_homework_answer(
+    answer_id: int,
+    score: HomeworkAnswerScore,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
     """评分作业"""
+    # 检查当前用户是否为教师
+    if current_user.role != "teacher":
+        raise HTTPException(status_code=403, detail="只有教师可以评分")
+
+    # 查找作业答案
+    answer = session.get(HomeworkAnswer, answer_id)
+    if not answer:
+        raise HTTPException(status_code=404, detail="作业答案不存在")
+
+    # 更新分数和评语
+    answer.score = score.score
+    answer.comment = score.comment
+    session.add(answer)
+    session.commit()
+
+    return {"message": "评分成功"}

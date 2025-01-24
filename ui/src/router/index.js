@@ -6,7 +6,7 @@ import Practice from '@/views/Practice.vue'
 import { useUserStore } from '@/stores/user'
 import Layout from "@/components/Layout.vue";
 import PracticeManage from "@/views/PracticeManage.vue";
-
+import PracticeDetail from "@/views/PracticeDetail.vue";
 
 // 配置NProgress选项
 NProgress.configure({
@@ -44,6 +44,12 @@ const router = createRouter({
           path: '/practiceManage',
           name: 'practiceManage',
           component: PracticeManage,
+          meta: { requiresAuth: true }
+        },
+        {
+          path: '/practice/:id',
+          name: 'PracticeDetail',
+          component: PracticeDetail,
           meta: { requiresAuth: true }
         },
         {

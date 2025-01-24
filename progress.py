@@ -204,7 +204,7 @@ async def get_user_learning_stats(user_id: int, session: Session = Depends(get_s
                     select(Progress.progress)
                     .where(Progress.course_id == course.id)
                     .where(Progress.user_id == user_id)
-                ).one()
+                ).first() or 0
             }
             for course in recent_courses
         ]

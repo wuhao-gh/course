@@ -134,8 +134,8 @@ const viewDialogVisible = ref(false)
 const getStatusText = (status) => {
   const statusMap = {
     pending: '未完成',
-    submitted: '已上传',
-    graded: '已打分'
+    submitted: '已提交',
+    graded: '已评分'
   }
   return statusMap[status] || status
 }

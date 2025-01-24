@@ -1,29 +1,23 @@
 <template>
   <div class="p-6">
     <div class="mb-6">
-      <h2 class="text-2xl font-bold mb-4">{{ homework.title }}</h2>
+      <h2 class="text-2xl font-bold mb-4">{{ practice.title }}</h2>
 
       <div class="bg-gray-50 p-4 rounded-lg">
         <div class="mb-4">
-          <h3 class="font-bold mb-2">作业描述</h3>
-          <p>{{ homework.description }}</p>
+          <h3 class="font-bold mb-2">练习描述</h3>
+          <p>{{ practice.description }}</p>
         </div>
 
-        <div class="grid grid-cols-3 gap-4">
-          <div>
-            <span class="text-gray-600">截止日期：</span>
-            {{ homework.deadline }}
-          </div>
-        </div>
       </div>
     </div>
 
     <div class="mt-6">
       <h3 class="text-xl font-bold mb-4">答案列表</h3>
       <el-table :data="answerList" stripe>
-        <el-table-column label="学生姓名" >
+        <el-table-column label="学生姓名">
           <template #default="{ row }">
-            <span> {{ row.user.name }} </span>
+            <span>{{ row.user.name }}</span>
           </template>
         </el-table-column>
         <el-table-column label="提交时间" width="180">
@@ -71,7 +65,7 @@
         <div class="mb-4">
           <div class="font-bold mb-2">答案文件：</div>
           <el-link 
-            :href="'/api/homework/download/' + currentAnswer.file_path"
+            :href="'/api/practice/download/' + currentAnswer.file_path"
             type="primary"
             target="_blank"
           >
@@ -85,7 +79,6 @@
               v-model="scoreForm.score" 
               :min="0" 
               :max="100"
-              :precision="0"
             />
           </el-form-item>
           <el-form-item label="评语">
@@ -110,11 +103,11 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import request from '@/api/request'
 import { formatDate } from '../utils/date'
+import request from '@/api/request'
 
 const route = useRoute()
-const homework = ref({})
+const practice = ref({})
 const answerList = ref([])
 const answerDialogVisible = ref(false)
 const currentAnswer = ref(null)
@@ -123,21 +116,20 @@ const scoreForm = ref({
   comment: ''
 })
 
-
-// 获取作业详情
-const fetchHomeworkDetail = async () => {
+// 获取练习详情
+const fetchPracticeDetail = async () => {
   try {
-    const data = await request.get(`/homework/${route.params.id}`)
-    homework.value = data
+    const data = await request.get(`/practice/${route.params.id}`)
+    practice.value = data
   } catch (error) {
-    ElMessage.error('获取作业详情失败')
+    ElMessage.error('获取练习详情失败')
   }
 }
 
 // 获取答案列表
 const fetchAnswerList = async () => {
   try {
-    answerList.value = await request.get(`/homework/${route.params.id}/answer`)
+    answerList.value = await request.get(`/practice/${route.params.id}/answer`)
   } catch (error) {
     ElMessage.error('获取答案列表失败')
   }
@@ -145,18 +137,19 @@ const fetchAnswerList = async () => {
 
 // 查看答案详情
 const viewAnswer = (answer) => {
+  console.log(answer)
   currentAnswer.value = answer
-  scoreForm.value = {
-    score: answer.score || 0,
-    comment: answer.comment || ''
-  }
+  scoreForm.value.score = answer.score ?? 0
+  scoreForm.value.comment = answer.comment ?? ''
   answerDialogVisible.value = true
+  console.log(scoreForm.value.score)
+  console.log(scoreForm.value.comment)
 }
 
 // 提交评分
 const handleSubmitScore = async () => {
   try {
-    await request.post(`/homework/answer/${currentAnswer.value.id}/score`, {
+    await request.post(`/practice/answer/${currentAnswer.value.id}/score`, {
       score: scoreForm.value.score,
       comment: scoreForm.value.comment
     })
@@ -172,7 +165,7 @@ const handleSubmitScore = async () => {
 }
 
 onMounted(async () => {
-  await fetchHomeworkDetail()
+  await fetchPracticeDetail()
   await fetchAnswerList()
 })
 </script>

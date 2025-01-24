@@ -139,6 +139,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { formatDate } from '../utils/date'
 import { ElMessage } from 'element-plus'
 import { Download } from '@element-plus/icons-vue'
 import { UploadFilled } from '@element-plus/icons-vue'
@@ -194,16 +196,6 @@ const downloadFile = async (file) => {
     ElMessage.error('下载文件失败')
     console.error(error)
   }
-}
-
-const formatDate = (dateStr) => {
-  return new Date(dateStr).toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
 }
 
 const getStatusType = (status) => {

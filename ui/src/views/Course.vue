@@ -212,7 +212,6 @@ const playVideo = async (course) => {
     if (progress) {
       // 恢复上次播放位置
       videoPlayer.value.currentTime = progress.current_time
-      ElMessage.success(`已恢复至上次播放位置: ${Math.floor(progress.current_time)}秒`)
     }
   } catch (error) {
     console.error('获取播放进度失败:', error)
@@ -222,18 +221,29 @@ const playVideo = async (course) => {
 const handleVideoLoaded = () => {
   if (selectedCourse.value && videoPlayer.value) {
     // 恢复上次播放位置
-    videoPlayer.value.currentTime = selectedCourse.value.current_time
+    if (selectedCourse.value.current_time && isFinite(selectedCourse.value.current_time)) {
+      videoPlayer.value.currentTime = selectedCourse.value.current_time
+    }
   }
 }
+
+// 防抖定时器
+let progressTimer = null
 
 const handleTimeUpdate = () => {
   if (!videoPlayer.value || !selectedCourse.value) return
 
-  // 使用防抖，避免频繁保存
-  setTimeout(async () => {
+  // 清除之前的定时器，实现防抖
+  if (progressTimer) {
+    clearTimeout(progressTimer)
+  }
+
+  progressTimer = setTimeout(async () => {
+    if (!videoPlayer.value || !selectedCourse.value) return
+
     const currentTime = videoPlayer.value.currentTime
     const duration = videoPlayer.value.duration
-    const progress = (currentTime / duration) * 100
+    const progress = Math.round((currentTime / duration) * 100)
 
     try {
       await request.post('/progress', {

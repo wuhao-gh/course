@@ -21,21 +21,11 @@
         </template>
       </el-table-column>
 
-      <el-table-column prop="type" label="类型" width="120">
-        <template #default="{ row }">
-          <el-tag :type="row.type === '选择题' ? 'success' : 'warning'">
-            {{ row.type }}
-          </el-tag>
-        </template>
-      </el-table-column>
-
       <el-table-column label="完成人数" width="120" align="center">
         <template #default="{ row }">
-          <span>{{ row.completed_count }}/{{ row.total_count }}</span>
+          <span>{{ row.commit_count }}/{{ row.total }}</span>
         </template>
       </el-table-column>
-
-      <el-table-column prop="avg_score" label="平均分" width="120" align="center" />
 
       <el-table-column label="操作" width="150" align="center">
         <template #default="{ row }">
@@ -66,13 +56,6 @@
       >
         <el-form-item label="标题" prop="title">
           <el-input v-model="form.title" placeholder="请输入练习标题"/>
-        </el-form-item>
-
-        <el-form-item label="类型" prop="type">
-          <el-select v-model="form.type" placeholder="请选择练习类型">
-            <el-option label="选择题" value="选择题" />
-            <el-option label="编程题" value="编程题" />
-          </el-select>
         </el-form-item>
 
         <el-form-item label="描述" prop="description">
@@ -142,11 +125,7 @@ const practiceList = ref([])
 
 // 获取练习列表
 const fetchPracticeList = async () => {
-  try {
-    practiceList.value = await request.get('/practice')
-  } catch (error) {
-    ElMessage.error('获取练习列表失败')
-  }
+  practiceList.value = await request.get('/practice/manage/list')
 }
 
 const dialogVisible = ref(false)

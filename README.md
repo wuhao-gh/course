@@ -33,7 +33,7 @@
 记录学生观看进度，用于统计分析
 
 #### 练习管理
-教师上传练习，查询学生作业完成情况
+教师上传练习、查询学生作业完成情况
 
 #### 练习
 
@@ -74,46 +74,55 @@ ORM：[SQLModel](https://sqlmodel.cn/)
 
 ### 目录结构
 
-```
-├── api                 # 后端服务
-│   ├── chat           # 聊天相关接口
-│   ├── course         # 课程资料相关接口
-│   ├── database       # 数据库配置和模型
-│   ├── homework       # 作业相关接口
-│   ├── practice       # 练习相关接口
-│   ├── stats          # 学习统计相关接口
-│   ├── system         # 系统管理相关接口
-│   ├── user           # 用户认证相关接口
-│   ├── utils          # 工具函数
-│   ├── main.py        # FastAPI 应用入口
-│   ├── config.py      # 配置文件
-│   └── requirements.txt # 后端依赖
-├── ui                  # 前端页面
-│   ├── public         # 静态资源
-│   ├── src            # 源代码
-│   │   ├── api       # API 接口封装
-│   │   ├── assets    # 资源文件
-│   │   ├── components # Vue 组件
-│   │   ├── router    # 路由配置
-│   │   ├── stores    # Pinia 状态管理
-│   │   ├── styles    # 样式文件
-│   │   ├── utils     # 工具函数
-│   │   ├── views     # 页面组件
-│   │   ├── App.vue   # 根组件
-│   │   └── main.js   # 入口文件
-│   ├── index.html    # HTML 模板
-│   ├── package.json  # 前端依赖
-│   └── vite.config.js # Vite 配置
-├── logs               # 日志目录
-├── ops                # 运维相关配置
-├── .gitignore        # Git 忽略配置
-└── README.md         # 项目说明文档
-```
+course/
+├── README.md                 # 项目说明文档
+├── pyproject.toml           # Python 项目配置文件
+├── uv.lock                  # uv 依赖锁定文件
+├── .python-version          # Python 版本配置
+├── main.py                  # FastAPI 应用入口
+├── model.py                 # 数据模型定义
+├── db.py                    # 数据库配置
+├── auth.py                  # 认证相关
+├── course.py                # 课程相关接口
+├── homework.py              # 作业相关接口
+├── practice.py              # 练习相关接口
+├── progress.py              # 学习进度相关接口
+├── chat.py                  # 问答功能接口
+├── stat.py                  # 统计相关接口
+├── admin.py                 # 系统管理接口
+├── logger.py                # 日志配置
+├── init_db.py              # 数据库初始化脚本
+│
+└── ui/                      # 前端代码
+    ├── index.html          # 入口 HTML
+    ├── package.json        # 前端依赖配置
+    ├── vite.config.js      # Vite 配置
+    ├── uno.config.ts       # UnoCSS 配置
+    ├── src/
+    │   ├── main.js         # 应用入口
+    │   ├── App.vue         # 根组件
+    │   ├── router/         # 路由配置
+    │   ├── stores/         # Pinia 状态管理
+    │   ├── api/            # API 接口封装
+    │   ├── components/     # 公共组件
+    │   ├── utils/          # 工具函数
+    │   ├── views/          # 页面组件
+    │   └── assets/         # 静态资源
+    └── public/             # 公共静态资源
 
 ### 运行
 1. 准备环境
-
+- 安装 uv
+- uv sync
+- 安装 node.js
+- 安装 pnpm
 2. 运行后端服务
-
+```bash
+python main.py
+```
 3. 运行前端服务
-
+```bash
+cd ui
+pnpm install
+pnpm run dev
+```

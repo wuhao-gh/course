@@ -62,11 +62,6 @@
                 <el-progress :percentage="row.last_progress" />
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="100">
-              <template #default="{ row }" v-if="isStudent">
-                <el-button type="primary" link @click="goToCourse(row.id)">继续学习</el-button>
-              </template>
-            </el-table-column>
           </el-table>
         </el-card>
       </div>
