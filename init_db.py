@@ -3,7 +3,12 @@ from sqlmodel import SQLModel
 
 import db
 from db import engine
-from model import User, Course, Practice, PracticeAnswer, Homework, HomeworkAnswer
+from auth import User
+from course import Course
+from practice import Practice, PracticeAnswer
+from homework import Homework, HomeworkAnswer
+from progress import Progress
+from chat import Message
 from sqlmodel import Session
 
 def init_db():
@@ -17,11 +22,15 @@ def init_db():
     tea = User(
         name="tea",
         email="teacher@example.com",
+        role="teacher",
+        status="激活",
         password_hash="$2b$12$.4oOk5iS6h8gFViEW.sHy.toiw240MHGqgXSOvst0aaMYfUjIEhlW",  # password: teacher123
     )
     stu = User(
         name="stu",
         email="student@example.com",
+        role="student",
+        status="激活",
         password_hash="$2b$12$taQgyQe2VluLbv.5c0ps9ehhV1qo.zK.2ZyZ2hL3VSxDMLCkJ05R6",  # password: student123
     )
 

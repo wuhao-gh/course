@@ -1,0 +1,35 @@
+# Git
+.git
+.gitignore
+
+# Node.js
+ui/node_modules
+ui/.vite
+ui/dist
+ui/coverage
+ui/.env*
+ui/*.log
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.py[cod]
+*$py.class
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
