@@ -110,19 +110,26 @@ course/
     │   └── assets/         # 静态资源
     └── public/             # 公共静态资源
 ```
-### 运行
+### 本地运行
 1. 准备环境
 - 安装 uv
 - uv sync
 - 安装 node.js
 - 安装 pnpm
+
 2. 运行后端服务
 ```bash
 python main.py
 ```
+
 3. 运行前端服务
 ```bash
 cd ui
 pnpm install
 pnpm run dev
+```
+
+### docker 运行
+```bash
+docker build -t course-app . && docker run -p 8000:8000 course-app
 ```
