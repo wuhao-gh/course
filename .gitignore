@@ -162,13 +162,10 @@ cython_debug/
 # windsurf rules
 .windsurfrules
 .idea
-*/upload
 .vscode
-
-*/logs
 
 uv.lock
 
 data
 
-# ops
+ops
