@@ -39,32 +39,32 @@ def init_db():
     session.commit()
 
     # 创建课程
-    course1 = Course(
-        title="Python 基础教程",
-        description="学习 Python 编程的基础知识",
-        category="编程语言",
-        file_path="/courses/python-basics",
-        creator_id=tea.id
-    )
-    course2 = Course(
-        title="Web 开发入门",
-        description="学习使用 FastAPI 开发 Web 应用",
-        category="Web开发",
-        file_path="/courses/web-dev",
-        creator_id=tea.id
-    )
-    session.add(course1)
-    session.add(course2)
+    # course1 = Course(
+    #     title="Python 基础教程",
+    #     description="学习 Python 编程的基础知识",
+    #     category="编程语言",
+    #     file_path="/courses/python-basics",
+    #     creator_id=tea.id
+    # )
+    # course2 = Course(
+    #     title="Web 开发入门",
+    #     description="学习使用 FastAPI 开发 Web 应用",
+    #     category="Web开发",
+    #     file_path="/courses/web-dev",
+    #     creator_id=tea.id
+    # )
+    # session.add(course1)
+    # session.add(course2)
     session.commit()
 
     # 创建练习
     practice1 = Practice(
-        title="Python 变量练习",
-        description="完成关于 Python 变量的练习题"
+        title="第一章",
+        description="第一章的练习"
     )
     practice2 = Practice(
-        title="函数编写练习",
-        description="编写几个简单的 Python 函数"
+        title="第二章",
+        description="第二章的练习"
     )
     session.add(practice1)
     session.add(practice2)
@@ -83,13 +83,13 @@ def init_db():
 
     # 创建作业
     homework1 = Homework(
-        title="Python 项目实战",
-        description="开发一个简单的命令行工具",
+        title="第一章",
+        description="第一章的作业",
         deadline=datetime.now() + timedelta(days=7)
     )
     homework2 = Homework(
-        title="Web API 开发",
-        description="使用 FastAPI 开发一个 REST API",
+        title="第二章",
+        description="第二章的作业",
         deadline=datetime.now() + timedelta(days=14)
     )
     session.add(homework1)

@@ -157,7 +157,8 @@ const selectUser = async (user) => {
 
 // 连接 WebSocket
 const connectWebSocket = () => {
-  ws.value = new WebSocket(`ws://localhost:8000/api/chat/ws/${currentUser.id}`)
+  // ws.value = new WebSocket(`ws://localhost:8000/api/chat/ws/${currentUser.id}`)
+  ws.value = new WebSocket(`wss://course.wuhao.dev/api/chat/ws/${currentUser.id}`)
 
   ws.value.onmessage = (event) => {
     const message = JSON.parse(event.data)
