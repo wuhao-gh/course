@@ -131,5 +131,14 @@ pnpm run dev
 
 ### docker 运行
 ```bash
-docker build -t course-app . && docker run -p 8000:8000 course-app
+docker build -t course . && docker run -p 8000:8000 course-app
+```
+
+如果需要构建支持多平台的镜像，可以使用 `docker buildx`
+```bash
+docker buildx create --name multiarch-builder --driver docker-container --bootstrap
+docker buildx use multiarch-builder
+docker buildx build --platform linux/amd64,linux/arm64 \
+  -t wuhwan/course \
+  --push .
 ```
